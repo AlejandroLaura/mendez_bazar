@@ -25,7 +25,7 @@ public class Venta {
     private Date fecha_venta;
     private Double total;
     @OneToMany
-    private List<Producto> listaProductos;
+    private List<ItemVenta> listaProductosCantidad;
     @OneToOne
     @JoinColumn(name = "id_cliente", referencedColumnName = "id")
     private Cliente unCliente;
@@ -33,13 +33,15 @@ public class Venta {
     public Venta() {
     }
 
-    public Venta(Long codigo, Date fecha_venta, Double total, List<Producto> listaProductos, Cliente unCliente) {
+    public Venta(Long codigo, Date fecha_venta, Double total, List<ItemVenta> listaProductosCantidad, Cliente unCliente) {
         this.codigo = codigo;
         this.fecha_venta = fecha_venta;
         this.total = total;
-        this.listaProductos = listaProductos;
+        this.listaProductosCantidad = listaProductosCantidad;
         this.unCliente = unCliente;
     }
+
+    
     
     
 }

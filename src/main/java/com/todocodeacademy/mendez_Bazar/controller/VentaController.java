@@ -57,8 +57,12 @@ public class VentaController {
     //endpoint para crear una venta
     @PostMapping("/venta/crear")
     public String createVenta(@RequestBody Venta venta){
-        ventaServis.saveVenta(venta);
-        return "La venta fue realizada correctamente";
+        try{
+            ventaServis.saveVenta(venta);
+            return "La venta fue realizada correctamente";
+        } catch (RuntimeException e){
+            return e.getMessage();
+        }
     }
     //endpoint para eliminar una venta
     @DeleteMapping("/venta/borrar")

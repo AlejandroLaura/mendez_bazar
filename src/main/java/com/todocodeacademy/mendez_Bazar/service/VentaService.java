@@ -3,11 +3,14 @@ package com.todocodeacademy.mendez_Bazar.service;
 
 import com.todocodeacademy.mendez_Bazar.dto.VentaClienteProductoDTO;
 import com.todocodeacademy.mendez_Bazar.dto.VentaProductoDTO;
+import com.todocodeacademy.mendez_Bazar.model.ItemVenta;
 import com.todocodeacademy.mendez_Bazar.model.Producto;
 import com.todocodeacademy.mendez_Bazar.model.Venta;
 import com.todocodeacademy.mendez_Bazar.repository.IVentaRepository;
+import com.todocodeacademy.mendez_Bazar.repository.ItemVentaRepository;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -22,6 +25,8 @@ public class VentaService implements IVentaService{
     private IVentaRepository ventaRepo;
     @Autowired
     private IProductoService productoServis;
+    @Autowired
+    private ItemVentaRepository itemRepo;
     //metodo para buscar una venta 
     @Override
     public Venta findVenta(Long codigo) {
@@ -35,9 +40,17 @@ public class VentaService implements IVentaService{
     //metodo para traer una lista de productos de una determinada venta
     @Override
     public List<Producto> getVentasProductos(Long codigo_venta) {
+        //creamos las listas auxiliar y a retornar
+        List<ItemVenta> listaItemVenta = new ArrayList();
+        List<Producto> listaProducto = new ArrayList();
         //buscamos la venta con el codigo
         Venta ven = this.findVenta(codigo_venta);
-        return ven.getListaProductos();
+        //seteamos la lista ItemVenta y la recorremos para setear solo los productos
+        listaItemVenta = ven.getListaProductosCantidad();
+        for(ItemVenta venta: listaItemVenta){
+            listaProducto.add(venta.getProducto());
+        }
+        return listaProducto;
     }
     //metodo para traer la cantidad de ventas y el monto total vendido en un dia
     @Override
@@ -104,7 +117,7 @@ public class VentaService implements IVentaService{
         }
         //seteamos el producto a retornar
         datos_venta_mayor.setCodigo_venta(ventaMayor.getCodigo());
-        datos_venta_mayor.setCantidad_de_productos(ventaMayor.getListaProductos().size());
+        datos_venta_mayor.setCantidad_de_productos(ventaMayor.getListaProductosCantidad().size());
         datos_venta_mayor.setTotal(ventaMayor.getTotal());
         datos_venta_mayor.setNombre_cliente(ventaMayor.getUnCliente().getNombre());
         datos_venta_mayor.setApellido_cliente(ventaMayor.getUnCliente().getApellido());
@@ -116,11 +129,23 @@ public class VentaService implements IVentaService{
         //calculamos el total de manera automatica
         //declaramos la variable del monto total de la venta y lista de prductos de la venta
         Double montoTotal = 0.0;
-        List<Producto> listaProductos = venta.getListaProductos();
-        //recorremos la lista y vamos sumando los montos por cada producto
-        for(Producto pro: listaProductos){
-            Producto productoActual = productoServis.findProducto(pro.getCodigo());
-            montoTotal = montoTotal + productoActual.getCosto();
+        List<ItemVenta> listaProductosCantidad = venta.getListaProductosCantidad();
+        //recorremos la lista y vamos sumando los montos por cada producto y su cantidad
+        for(ItemVenta productoCantidad: listaProductosCantidad){
+            
+            Producto productoActual = productoServis.findProducto(productoCantidad.getProducto().getCodigo());
+            //persistimos primero nuestros ItemVenta
+            itemRepo.save(productoCantidad);
+            //verificamos si hay stock suficiente
+            if(productoActual.getCantidad_disponible() < productoCantidad.getCantidad()){
+                //provacamos una exception
+                throw new RuntimeException("No se puede realizar la venta porque falta stock en el producto: " + productoActual.getNombre());
+            }
+            //actualizamos nuestro stock del producto y calculamos el monto total
+            
+            montoTotal = montoTotal + (productoActual.getCosto() * productoCantidad.getCantidad());
+            productoActual.setCantidad_disponible(productoActual.getCantidad_disponible()- productoCantidad.getCantidad());
+            
         }
         venta.setTotal(montoTotal);
         
